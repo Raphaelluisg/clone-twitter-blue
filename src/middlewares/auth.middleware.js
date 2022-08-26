@@ -9,7 +9,7 @@ module.exports = (req, res, next) => {
     return res.status(401).send({ message: "Token needs to be informed!" });
   }
 
-  const parts = authHeader.split(" "); /* [Bearer, sgsdfgdfgdfgd]*/
+  const parts = authHeader.split(" ");
 
   if(parts.length !== 2) {
     return res.status(401).send({ message: "Invalid token." });
