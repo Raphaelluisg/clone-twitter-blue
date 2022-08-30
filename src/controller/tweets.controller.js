@@ -1,16 +1,16 @@
 const tweetService = require("../service/tweets.service");
+const { v4: uuidv4 } = require("uuid");
+
 
 const createTweetController = async (req, res) => {
     try {
-        const {message} = req.body;
-
-        if(!message){
+        if(!req.body.message){
             res.status(400).send({
                 message: "Try to send all data to your tweet.",
             });
         }
 
-        const { id } = await tweetService.createTweetService(message, req.userId);
+        const { id } = await tweetService.createTweetService(req.body.message, req.userId);
 
         return res.status(201).send({
             message: "Tweet has been created successfully.",
@@ -24,13 +24,39 @@ const createTweetController = async (req, res) => {
 
 const findAllTweetsController = async (req, res) => {
     try{
-        const tweets = await tweetService.findAllTweetsService();
+        let { limit, offset } = req.query;
+
+        offset = Number(offset);
+        limit = Number(limit);
+
+        !offset ? offset = 0 : null;
+        
+        !limit ? limit = 6 : null;
+
+        const tweets = await tweetService.findAllTweetsService(offset, limit);
+
+        const total = await tweetService.countTweets();
+
+        const currentUrl = req.baseUrl;
+
+        const next = offset + limit;
+        const nextUrl =
+        next < total ? `${currentUrl}?limit=${limit}&offset=${next}` : null;
+
+        const previous = offset - limit < 0 ? null : offset - limit;
+        const previousUrl =
+        previous != null ? `${currentUrl}?limit=${limit}&offset=${previous}` : null;
 
         if(tweets.length ===0) {
             return res.status(400).send({ message: "There is no data exist!" });
         }
 
         return res.send({
+            nextUrl,
+            previousUrl,
+            limit,
+            offset,
+            total,
             results: tweets.map((tweet) => ({
                 id: tweet._id,
                 message: tweet.message,
@@ -50,9 +76,7 @@ const findAllTweetsController = async (req, res) => {
 
 const searchTweetController = async (req, res) => {
     try{
-        const { message } = req.query;
-
-        const tweets = await tweetService.searchTweetService(message);
+        const tweets = await tweetService.searchTweetService(req.query.message);
 
         if(tweets.length ===0){
             return res
@@ -77,4 +101,90 @@ const searchTweetController = async (req, res) => {
     }
 };
 
-module.exports = {createTweetController, findAllTweetsController, searchTweetController}
+const likeTweetController = async (req, res) => {
+    try{
+        const tweetLiked = await tweetService.likesService(req.params.id, req.userId);
+
+        if (tweetLiked.lastErrorObject.n === 0) {
+            return res.status(400).send({ message: "You already like this tweet!" });
+        };
+
+        return res.send({ 
+            message: "Your like was successfully!"
+        });
+    } catch(err) {
+        res.status(500).send({ message: "Unexpected error, try again later." });
+        console.log(err.message);
+    }
+};
+
+const dislikeTweetController = async (req, res) => {
+    try{
+        const tweetDisliked = await tweetService.dislikesService(req.params.id, req.userId);
+        console.log(tweetDisliked);
+
+        if (tweetDisliked.lastErrorObject.n === 0) {
+            return res.status(400).send({ message: "You already dislike this tweet!" });
+        };
+
+        return res.send({ 
+            message: "Dislike was successfully!"
+        });
+    } catch(err) {
+        res.status(500).send({ message: "Unexpected error, try again later"});
+        console.log(err.message);
+    }
+};
+
+const retweetTweetController = async (req, res) => {
+    try{
+        const tweetRetweeted = await tweetService.retweetsService(req.params.id, req.userId);
+
+        if (tweetRetweeted.lastErrorObject.n === 0) {
+            return res
+            .status(400)
+            .send({ message: "You already retweeted this tweet!" });
+        }
+
+        return res.send({
+            message: "Retweet successfully!"
+        });
+    } catch(err) {
+        res.status(500).send({ message: "Unexpected error, trying again later" });
+    }
+};
+
+const commentTweetController = async (req, res) => {
+    try{
+        await tweetService.commentsService(req.params.id, req.userId, uuidv4(), req.body.comment);
+
+        return res.send({ 
+            message: "Comment created successfully!",
+        });
+    } catch(err) {
+        res.status(500).send({ message: "Unexpected error, trying again later" });
+    }
+};
+
+const uncommentTweetController = async (req, res) => {
+    try{
+        await tweetService.uncommentsService(req.params.id, req.query.comment_id);
+
+        return res.send({ 
+            message: "Comment deleted successfully!",
+        });
+    } catch(err) {
+        res.status(500).send({ message: "Unexpected error, trying again later" });
+    }
+};
+
+module.exports = {
+    createTweetController,
+    findAllTweetsController,
+    searchTweetController,
+    likeTweetController,
+    dislikeTweetController,
+    retweetTweetController,
+    commentTweetController,
+    uncommentTweetController
+}
