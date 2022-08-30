@@ -10,7 +10,7 @@ const createTweetController = async (req, res) => {
             });
         }
 
-        const { id } = await tweetService.createTweetService(req.body.message, req.userId);
+        const { id, message } = await tweetService.createTweetService(req.body.message, req.userId);
 
         return res.status(201).send({
             message: "Tweet has been created successfully.",
@@ -65,7 +65,7 @@ const findAllTweetsController = async (req, res) => {
                 retweets: tweet.retweets.length,
                 name: tweet.user.name,
                 username: tweet.user.username,
-                avatar: tweet.avatar,
+                avatar: tweet.user.avatar,
             })),
         })
     }catch(err){
