@@ -10,7 +10,7 @@
     },
     "servers": [
       {
-        "url": "https://bluetwitterclone.herokuapp.com",
+        "url": "https://blue-clone-twitter-rlg.herokuapp.com",
         "description": "API no Heroku"
       },
       {
